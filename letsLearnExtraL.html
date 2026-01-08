@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Let's Learn Portal</title>
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111317;
+      --card: #141821;
+      --white: #ffffff;
+      --muted: #cfd3d8;
+      --gold: #d4af37;
+      --gold-2: #f2d16b;
+      --accent: #ffd966;
+      --error: #ff5c7a;
+      --success: #48d597;
+      --shadow-1: rgba(0,0,0,0.3);
+      --shadow-2: rgba(212,175,55,0.35);
+      --radius: 16px;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+      color: var(--white);
+      background:
+        radial-gradient(1200px 600px at 10% -20%, rgba(212,175,55,0.12), transparent 40%),
+        radial-gradient(900px 500px at 90% 120%, rgba(242,209,107,0.08), transparent 40%),
+        linear-gradient(180deg, #090b10 0%, #0b0e14 60%, #0a0a0a 100%);
+      min-height: 100vh;
+    }
+
+    /* Header with subtle 3D */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      backdrop-filter: blur(8px);
+      background: linear-gradient(180deg, rgba(20,24,33,0.85) 0%, rgba(20,24,33,0.65) 100%);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      box-shadow: 0 8px 24px var(--shadow-1);
+    }
+
+    .wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 18px 0;
+    }
+    .logo {
+      width: 42px; height: 42px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--gold) 0%, var(--gold-2) 100%);
+      box-shadow: 0 10px 30px var(--shadow-2), inset 0 2px 8px rgba(255,255,255,0.3);
+      border: 1px solid rgba(255,255,255,0.22);
+      transform: translateZ(0);
+    }
+    .title {
+      font-weight: 700; letter-spacing: 0.3px;
+      background: linear-gradient(90deg, #fff, var(--muted));
+      background-clip: text; -webkit-background-clip: text; color: transparent;
+    }
+    .subtitle { color: var(--muted); font-size: 14px; margin-top: 2px; }
+
+    /* Nav tabs */
+    nav {
+      display: flex; gap: 8px; flex-wrap: wrap;
+      padding-bottom: 14px;
+    }
+    .tab-btn {
+      position: relative;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.08);
+      color: var(--muted);
+      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.15);
+      cursor: pointer;
+      transition: transform 200ms ease, box-shadow 200ms ease, color 200ms ease, border-color 200ms ease;
+    }
+    .tab-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 16px rgba(0,0,0,0.25);
+      color: #fff;
+      border-color: rgba(255,255,255,0.18);
+    }
+    .tab-btn.active {
+      color: #0b0e14;
+      font-weight: 600;
+      background: linear-gradient(135deg, var(--gold), var(--gold-2));
+      border: 1px solid rgba(255,255,255,0.35);
+      box-shadow: 0 12px 26px var(--shadow-2);
+    }
+
+    /* Main sections */
+    main { padding: 24px 0 56px; }
+    section.card {
+      display: none;
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: var(--radius);
+      box-shadow: 0 16px 40px var(--shadow-1), inset 0 1px 0 rgba(255,255,255,0.12);
+      padding: 22px;
+      margin-bottom: 22px;
+    }
+    section.card.active { display: block; }
+
+    h2 {
+      margin: 0 0 14px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      background: linear-gradient(90deg, #fff, var(--muted));
+      background-clip: text; -webkit-background-clip: text; color: transparent;
+    }
+    p.lead { color: var(--muted); margin-top: 6px; }
+
+    /* Grid */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 16px;
+    }
+    .panel {
+      background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: 0 12px 26px rgba(0,0,0,0.25);
+      transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+    }
+    .panel:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 16px 36px rgba(212,175,55,0.2);
+      border-color: rgba(212,175,55,0.35);
+    }
+    .panel h3 {
+      margin: 0 0 8px;
+      font-weight: 600;
+      color: #fff;
+    }
+    .chips {
+      display: flex; flex-wrap: wrap; gap: 8px;
+    }
+    .chip {
+      padding: 6px 10px;
+      border-radius: 20px;
+      font-size: 13px;
+      color: #0b0e14;
+      background: linear-gradient(135deg, var(--gold), var(--accent));
+      border: 1px solid rgba(255,255,255,0.35);
+      box-shadow: 0 8px 16px var(--shadow-2);
+    }
+
+    /* Forms */
+    form {
+      display: grid; gap: 12px; max-width: 720px;
+    }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    label { font-size: 13px; color: var(--muted); }
+    input, select, textarea {
+      width: 100%; padding: 12px 12px; border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+      color: #fff; outline: none;
+      transition: border-color 150ms ease, box-shadow 150ms ease;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: rgba(212,175,55,0.55);
+      box-shadow: 0 0 0 3px rgba(212,175,55,0.25);
+    }
+    textarea { min-height: 110px; resize: vertical; }
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 12px 16px; border-radius: 12px; cursor: pointer; border: none;
+      color: #0b0e14; font-weight: 600;
+      background: linear-gradient(135deg, var(--gold), var(--gold-2));
+      border: 1px solid rgba(255,255,255,0.45);
+      box-shadow: 0 14px 30px var(--shadow-2);
+      transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
+    }
+    .btn:hover { transform: translateY(-2px); filter: brightness(1.03); }
+    .btn.secondary {
+      color: #fff;
+      background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+      border: 1px solid rgba(255,255,255,0.12);
+      box-shadow: 0 10px 24px rgba(0,0,0,0.22);
+    }
+
+    .note { font-size: 13px; color: var(--muted); }
+
+    /* Status */
+    .status {
+      padding: 10px 12px; border-radius: 10px; font-size: 14px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+    }
+    .status.ok { border-color: rgba(72,213,151,0.45); color: #b2f3d8; }
+    .status.err { border-color: rgba(255,92,122,0.45); color: #ffc8d2; }
+
+    /* Online class embed box */
+    .class-box {
+      display: grid; gap: 16px;
+    }
+    .iframe-wrap {
+      border-radius: 14px; overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: #0c0f15;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.35);
+      min-height: 320px;
+    }
+    .iframe-wrap iframe {
+      width: 100%; height: 360px; border: 0;
+    }
+
+    footer {
+      padding: 22px 0; color: var(--muted);
+      border-top: 1px solid rgba(255,255,255,0.08);
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+    }
+	
+	//submission button
+	#assessments .btn {
+  background: linear-gradient(135deg, var(--gold), var(--gold-2));
+  box-shadow: 0 12px 28px rgba(212,175,55,0.35);
+}
+#assessments input[type="file"] {
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+  color: #fff;
+}
+
+	
+	
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <div class="title">Let's Learn Portal</div>
+          <div class="subtitle">Virtual classes, Grades 4–12, secure student access</div>
+        </div>
+      </div>
+
+      <nav id="tabs">
+        <button class="tab-btn active" data-tab="home">Home</button>
+        <button class="tab-btn" data-tab="grades">Grades</button>
+        <button class="tab-btn" data-tab="online">Online class</button>
+        <button class="tab-btn" data-tab="signup">Sign up</button>
+        <button class="tab-btn" data-tab="login">Login</button>
+        <button class="tab-btn" data-tab="booking">Parent booking</button>
+      </nav>
+	  
+	  <!-- Assessment Submission (only visible when logged in) -->
+<section id="assessments" class="card">
+  <h2>Submit Assessment</h2>
+  <p class="lead">Upload your assignment file. Submissions are emailed directly to the program admin.</p>
+
+  <form id="assessmentForm">
+    <div class="row">
+      <div>
+        <label for="asTitle">Assessment Title</label>
+        <input id="asTitle" type="text" placeholder="e.g., Mathematics Term 1" required />
+      </div>
+      <div>
+        <label for="asSubject">Subject</label>
+        <input id="asSubject" type="text" placeholder="e.g., Mathematics" required />
+      </div>
+    </div>
+
+    <div>
+      <label for="asFile">Upload file</label>
+      <input id="asFile" type="file" required />
+    </div>
+
+    <button class="btn" type="submit">Submit Assessment</button>
+    <div id="assessmentStatus" class="status" style="display:none;"></div>
+  </form>
+</section>
+
+	  
+    </div>
+  </header>
+
+  <main class="wrap">
+    <!-- Home -->
+    <section id="home" class="card active">
+      <h2>Welcome</h2>
+      <p class="lead">Join live classes, explore grade-specific subjects, and manage your student access with a unique ID. Parents can register children without signing in.</p>
+
+      <div class="grid">
+        <div class="panel">
+          <h3>How access works</h3>
+          <p class="note">Only students registered to the program can sign up or log in using their unique Student ID. Parents submit bookings; once approved, the student receives an ID for access.</p>
+        </div>
+        <div class="panel">
+          <h3>What’s included</h3>
+          <div class="chips">
+            <span class="chip">Live online classes</span>
+            <span class="chip">Grades 4–12</span>
+            <span class="chip">Focused subjects</span>
+            <span class="chip">Secure login</span>
+            <span class="chip">Parent booking</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Grades -->
+    <section id="grades" class="card">
+      <h2>Grades and subjects</h2>
+      <p class="lead">Browse subjects for each grade. Choose your level and see what’s offered.</p>
+      <div id="gradeGrid" class="grid"></div>
+    </section>
+
+    <!-- Online Class -->
+    <section id="online" class="card">
+      <h2>Online class</h2>
+      <p class="lead">Join the virtual classroom. Students must be logged in to access session links.</p>
+
+      <div class="class-box">
+        <div class="status" id="classStatus">Not logged in. Please log in to join a class.</div>
+
+        <div class="iframe-wrap" id="classEmbed" style="display:none;">
+          <!-- Replace src with your meeting provider URL (e.g., Jitsi/Zoom web client) -->
+          <iframe id="classFrame" src="about:blank" title="Virtual Class"></iframe>
+        </div>
+
+        <div>
+          <button class="btn" id="joinClassBtn">Join current class</button>
+          <button class="btn secondary" id="leaveClassBtn">Leave</button>
+        </div>
+
+        <p class="note">Tip: You can host directly via embeddable providers (e.g., Jitsi meet) or link to your live session page.</p>
+      </div>
+    </section>
+
+    <!-- Sign up (students with valid ID only) -->
+    <section id="signup" class="card">
+      <h2>Student sign up</h2>
+      <p class="lead">Only students with a valid Student ID can create an account.</p>
+
+      <form id="signupForm">
+        <div class="row">
+          <div>
+            <label for="suStudentId">Student ID</label>
+            <input id="suStudentId" type="text" placeholder="e.g., EL-2026-0042" required />
+          </div>
+          <div>
+            <label for="suGrade">Grade</label>
+            <select id="suGrade" required></select>
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label for="suName">Full name</label>
+            <input id="suName" type="text" placeholder="Student full name" required />
+          </div>
+          <div>
+            <label for="suEmail">Email</label>
+            <input id="suEmail" type="email" placeholder="student@example.com" required />
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label for="suPassword">Password</label>
+            <input id="suPassword" type="password" placeholder="Create a strong password" required />
+          </div>
+          <div>
+            <label for="suConfirm">Confirm password</label>
+            <input id="suConfirm" type="password" placeholder="Re-enter password" required />
+          </div>
+        </div>
+
+        <button class="btn" type="submit">Create account</button>
+        <div id="signupStatus" class="status" style="display:none;"></div>
+      </form>
+
+      <p class="note">Don’t have a Student ID yet? Ask your parent/guardian to submit a booking in the Parent booking tab.</p>
+    </section>
+
+    <!-- Login (students only) -->
+    <section id="login" class="card">
+      <h2>Student login</h2>
+      <p class="lead">Log in with your registered email, password, and Student ID.</p>
+
+      <form id="loginForm">
+        <div class="row">
+          <div>
+            <label for="liStudentId">Student ID</label>
+            <input id="liStudentId" type="text" placeholder="Your Student ID" required />
+          </div>
+          <div>
+            <label for="liEmail">Email</label>
+            <input id="liEmail" type="email" placeholder="student@example.com" required />
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label for="liPassword">Password</label>
+            <input id="liPassword" type="password" placeholder="Your password" required />
+          </div>
+          <div>
+            <label>&nbsp;</label>
+            <button class="btn" type="submit">Login</button>
+          </div>
+        </div>
+
+        <div id="loginStatus" class="status" style="display:none;"></div>
+      </form>
+    </section>
+
+    <!-- Parent booking (no sign-in) -->
+    <section id="booking" class="card">
+      <h2>Parent booking</h2>
+      <p class="lead">Register your child for the program. No sign-in required.</p>
+
+      <form id="bookingForm">
+        <div class="row">
+          <div>
+            <label for="bkParentName">Parent/Guardian name</label>
+            <input id="bkParentName" type="text" placeholder="Full name" required />
+          </div>
+          <div>
+            <label for="bkParentEmail">Parent email</label>
+            <input id="bkParentEmail" type="email" placeholder="parent@example.com" required />
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label for="bkChildName">Child full name</label>
+            <input id="bkChildName" type="text" placeholder="Student full name" required />
+          </div>
+          <div>
+            <label for="bkChildGrade">Child grade</label>
+            <select id="bkChildGrade" required></select>
+          </div>
+        </div>
+
+        <div>
+          <label for="bkSubjects">Preferred subjects</label>
+          <textarea id="bkSubjects" placeholder="e.g., Mathematics, English, Natural Sciences" required></textarea>
+        </div>
+
+        <div class="row">
+          <div>
+            <label for="bkPhone">Parent phone</label>
+            <input id="bkPhone" type="tel" placeholder="+27 ..." required />
+          </div>
+          <div>
+            <label for="bkNotes">Notes (optional)</label>
+            <input id="bkNotes" type="text" placeholder="Any additional info"/>
+          </div>
+        </div>
+
+        <button class="btn" type="submit">Submit booking</button>
+        <div id="bookingStatus" class="status" style="display:none;"></div>
+      </form>
+
+      <p class="note">After approval, you’ll receive a unique Student ID for your child. Use that ID to sign up and log in.</p>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <small>© 2026 Let's Learn Portal</small>
+    </div>
+  </footer>
+
+  <script>
+    // ---------- Data: Grades & Subjects ----------
+    const subjectsByGrade = {
+      4: ["Mathematics", "English", "Home Language", "Natural Sciences", "Social Sciences"],
+      5: ["Mathematics", "English", "Home Language", "Natural Sciences", "Social Sciences"],
+      6: ["Mathematics", "English", "Home Language", "Natural Sciences", "Social Sciences"],
+      7: ["Mathematics", "English", "Home Language", "Natural Sciences", "Social Sciences", "Technology"],
+      8: ["Mathematics", "English", "Home Language", "Natural Sciences", "Social Sciences", "Technology"],
+      9: ["Mathematics", "English", "Home Language", "Natural Sciences", "Social Sciences", "Technology"],
+      10: ["Mathematics/Math Lit", "English", "Home Language", "Physical Sciences", "Life Sciences", "Accounting", "Business Studies", "Economics", "Geography", "History", "IT"],
+      11: ["Mathematics/Math Lit", "English", "Home Language", "Physical Sciences", "Life Sciences", "Accounting", "Business Studies", "Economics", "Geography", "History", "IT"],
+      12: ["Mathematics/Math Lit", "English", "Home Language", "Physical Sciences", "Life Sciences", "Accounting", "Business Studies", "Economics", "Geography", "History", "IT"]
+    };
+
+    // ---------- Simulated registry: only IDs listed can sign up ----------
+    // In production, this comes from your backend after parent booking approval.
+    const approvedStudentIDs = new Set([
+      "EL-2026-0001",
+      "EL-2026-0042",
+      "EL-2026-1010"
+    ]);
+
+    // ---------- LocalStorage helpers ----------
+    const LS_KEYS = {
+      students: "el_students",
+      bookings: "el_bookings",
+      session: "el_session"
+    };
+
+    const store = {
+      getStudents() {
+        return JSON.parse(localStorage.getItem(LS_KEYS.students) || "[]");
+      },
+      saveStudents(students) {
+        localStorage.setItem(LS_KEYS.students, JSON.stringify(students));
+      },
+      getBookings() {
+        return JSON.parse(localStorage.getItem(LS_KEYS.bookings) || "[]");
+      },
+      saveBookings(bookings) {
+        localStorage.setItem(LS_KEYS.bookings, JSON.stringify(bookings));
+      },
+      getSession() {
+        return JSON.parse(localStorage.getItem(LS_KEYS.session) || "null");
+      },
+      saveSession(session) {
+        localStorage.setItem(LS_KEYS.session, JSON.stringify(session));
+      },
+      clearSession() {
+        localStorage.removeItem(LS_KEYS.session);
+      }
+    };
+
+    // ---------- Tabs ----------
+    const tabButtons = Array.from(document.querySelectorAll(".tab-btn"));
+    const sections = {
+      home: document.getElementById("home"),
+      grades: document.getElementById("grades"),
+      online: document.getElementById("online"),
+      signup: document.getElementById("signup"),
+      login: document.getElementById("login"),
+      booking: document.getElementById("booking")
+    };
+
+    tabButtons.forEach(btn => {
+      btn.addEventListener("click", () => {
+        tabButtons.forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        Object.values(sections).forEach(sec => sec.classList.remove("active"));
+        sections[btn.dataset.tab].classList.add("active");
+        if (btn.dataset.tab === "online") updateOnlineClassUI();
+      });
+    });
+
+    // ---------- Populate Grades ----------
+    function populateGrades() {
+      const gradeGrid = document.getElementById("gradeGrid");
+      gradeGrid.innerHTML = "";
+      for (let g = 4; g <= 12; g++) {
+        const panel = document.createElement("div");
+        panel.className = "panel";
+        const h = document.createElement("h3");
+        h.textContent = `Grade ${g}`;
+        const list = document.createElement("div");
+        list.className = "chips";
+        subjectsByGrade[g].forEach(s => {
+          const chip = document.createElement("span");
+          chip.className = "chip";
+          chip.textContent = s;
+          list.appendChild(chip);
+        });
+        panel.appendChild(h);
+        panel.appendChild(list);
+        gradeGrid.appendChild(panel);
+      }
+    }
+
+    function populateGradeSelects() {
+      const suGrade = document.getElementById("suGrade");
+      const bkChildGrade = document.getElementById("bkChildGrade");
+      [suGrade, bkChildGrade].forEach(sel => {
+        sel.innerHTML = "";
+        for (let g = 4; g <= 12; g++) {
+          const opt = document.createElement("option");
+          opt.value = g;
+          opt.textContent = `Grade ${g}`;
+          sel.appendChild(opt);
+        }
+      });
+    }
+
+    // ---------- Sign up ----------
+    const signupForm = document.getElementById("signupForm");
+    const signupStatus = document.getElementById("signupStatus");
+
+    signupForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const id = document.getElementById("suStudentId").value.trim();
+      const grade = parseInt(document.getElementById("suGrade").value, 10);
+      const name = document.getElementById("suName").value.trim();
+      const email = document.getElementById("suEmail").value.trim().toLowerCase();
+      const pw = document.getElementById("suPassword").value;
+      const confirm = document.getElementById("suConfirm").value;
+
+      // Validate ID eligibility
+      if (!approvedStudentIDs.has(id)) {
+        showStatus(signupStatus, "Invalid or unapproved Student ID. Please confirm with the program admin.", false);
+        return;
+      }
+      // Validate password match
+      if (pw.length < 6) {
+        showStatus(signupStatus, "Password must be at least 6 characters.", false);
+        return;
+      }
+      if (pw !== confirm) {
+        showStatus(signupStatus, "Passwords do not match.", false);
+        return;
+      }
+
+      let students = store.getStudents();
+      if (students.find(s => s.studentId === id)) {
+        showStatus(signupStatus, "An account with this Student ID already exists.", false);
+        return;
+      }
+      if (students.find(s => s.email === email)) {
+        showStatus(signupStatus, "An account with this email already exists.", false);
+        return;
+      }
+
+      const student = {
+        studentId: id,
+        grade,
+        name,
+        email,
+        passwordHash: hashPw(pw), // simple demo hash
+        createdAt: new Date().toISOString()
+      };
+      students.push(student);
+      store.saveStudents(students);
+
+      showStatus(signupStatus, "Account created successfully. You can now log in.", true);
+      signupForm.reset();
+    });
+
+    // Simple demo password “hash”
+    function hashPw(pw) {
+      let h = 0;
+      for (let i = 0; i < pw.length; i++) {
+        h = ((h << 5) - h) + pw.charCodeAt(i);
+        h |= 0;
+      }
+      return String(h);
+    }
+
+    // ---------- Login ----------
+    const loginForm = document.getElementById("loginForm");
+    const loginStatus = document.getElementById("loginStatus");
+
+    loginForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const id = document.getElementById("liStudentId").value.trim();
+      const email = document.getElementById("liEmail").value.trim().toLowerCase();
+      const pw = document.getElementById("liPassword").value;
+
+      const students = store.getStudents();
+      const student = students.find(s => s.studentId === id && s.email === email);
+      if (!student) {
+        showStatus(loginStatus, "No account found for this ID and email.", false);
+        return;
+      }
+      if (student.passwordHash !== hashPw(pw)) {
+        showStatus(loginStatus, "Incorrect password.", false);
+        return;
+      }
+
+      store.saveSession({ studentId: student.studentId, name: student.name, grade: student.grade, email: student.email });
+      showStatus(loginStatus, `Logged in as ${student.name} (Grade ${student.grade}).`, true);
+      updateOnlineClassUI();
+    });
+
+    // ---------- Parent booking (no sign-in) ----------
+    const bookingForm = document.getElementById("bookingForm");
+    const bookingStatus = document.getElementById("bookingStatus");
+
+    bookingForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const parentName = document.getElementById("bkParentName").value.trim();
+      const parentEmail = document.getElementById("bkParentEmail").value.trim().toLowerCase();
+      const childName = document.getElementById("bkChildName").value.trim();
+      const childGrade = parseInt(document.getElementById("bkChildGrade").value, 10);
+      const subjects = document.getElementById("bkSubjects").value.trim();
+      const phone = document.getElementById("bkPhone").value.trim();
+      const notes = document.getElementById("bkNotes").value.trim();
+
+      const bookings = store.getBookings();
+      const ref = `BK-${new Date().getTime()}`;
+      const rec = {
+        ref,
+        parentName, parentEmail, childName, childGrade, subjects, phone, notes,
+        status: "pending",
+        createdAt: new Date().toISOString()
+      };
+      bookings.push(rec);
+      store.saveBookings(bookings);
+
+      showStatus(bookingStatus, `Booking submitted. Reference: ${ref}. We'll contact you after review.`, true);
+      bookingForm.reset();
+
+      // “Admin” preview for demo
+      console.log("New booking received:", rec);
+      console.log("All bookings:", bookings);
+    });
+
+    // ---------- Online class access ----------
+    const classStatus = document.getElementById("classStatus");
+    const classEmbed = document.getElementById("classEmbed");
+    const classFrame = document.getElementById("classFrame");
+    const joinClassBtn = document.getElementById("joinClassBtn");
+    const leaveClassBtn = document.getElementById("leaveClassBtn");
+
+    function updateOnlineClassUI() {
+      const session = store.getSession();
+      if (!session) {
+        classStatus.textContent = "Not logged in. Please log in to join a class.";
+        classStatus.className = "status err";
+        classEmbed.style.display = "none";
+        return;
+      }
+      classStatus.textContent = `Logged in as ${session.name} (Grade ${session.grade}). You can join the class.`;
+      classStatus.className = "status ok";
+    }
+
+    joinClassBtn.addEventListener("click", () => {
+      const session = store.getSession();
+      if (!session) {
+        alert("Please log in to join the class.");
+        return;
+      }
+      // For demo: load a placeholder “class” page.
+      // Replace this with your actual meeting URL (e.g., a Jitsi room).
+      const meetingUrl = "about:blank";
+      classFrame.src = meetingUrl;
+      classEmbed.style.display = "block";
+    });
+
+    leaveClassBtn.addEventListener("click", () => {
+      classFrame.src = "about:blank";
+      classEmbed.style.display = "none";
+    });
+
+    // ---------- Utility ----------
+    function showStatus(el, msg, ok = true) {
+      el.style.display = "block";
+      el.textContent = msg;
+      el.className = ok ? "status ok" : "status err";
+    }
+
+    // ---------- Init ----------
+    populateGrades();
+    populateGradeSelects();
+    updateOnlineClassUI();
+  </script>
+  
+  
+  <script src="https://cdn.emailjs.com/dist/email.min.js"></script>
+<script>
+  // Initialize EmailJS with your user ID
+  (function(){
+    emailjs.init("YOUR_EMAILJS_USER_ID"); 
+  })();
+
+  const assessmentForm = document.getElementById("assessmentForm");
+  const assessmentStatus = document.getElementById("assessmentStatus");
+
+  assessmentForm.addEventListener("submit", function(e) {
+    e.preventDefault();
+
+    const session = JSON.parse(localStorage.getItem("el_session"));
+    if (!session) {
+      showStatus(assessmentStatus, "You must be logged in to submit assessments.", false);
+      return;
+    }
+
+    const title = document.getElementById("asTitle").value;
+    const subject = document.getElementById("asSubject").value;
+    const fileInput = document.getElementById("asFile");
+
+    if (fileInput.files.length === 0) {
+      showStatus(assessmentStatus, "Please select a file.", false);
+      return;
+    }
+
+    const file = fileInput.files[0];
+
+    // Build form data for EmailJS
+    const formData = new FormData();
+    formData.append("student_name", session.name);
+    formData.append("student_id", session.studentId);
+    formData.append("student_email", session.email);
+    formData.append("assessment_title", title);
+    formData.append("assessment_subject", subject);
+    formData.append("file", file);
+
+    emailjs.sendForm("YOUR_SERVICE_ID", "YOUR_TEMPLATE_ID", assessmentForm)
+      .then(() => {
+        showStatus(assessmentStatus, "Assessment submitted successfully. Confirmation sent to admin.", true);
+        assessmentForm.reset();
+      }, (err) => {
+        console.error(err);
+        showStatus(assessmentStatus, "Error submitting assessment. Try again later.", false);
+      });
+  });
+
+  function showStatus(el, msg, ok = true) {
+    el.style.display = "block";
+    el.textContent = msg;
+    el.className = ok ? "status ok" : "status err";
+  }
+</script>
+
+  
+</body>
+</html>
