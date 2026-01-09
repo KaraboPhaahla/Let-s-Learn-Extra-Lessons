@@ -2,12 +2,15 @@
 <html lang="en">
 <head>
 
-   <!-- Add this in your <head> --> 
+  <!-- Add this in your <head> --> 
   <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
-	
+
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Let's Learn Portal</title>
+  
+  
+  
   <style>
     :root {
       --bg: #0a0a0a;
@@ -60,7 +63,7 @@
       gap: 14px;
       padding: 18px 0;
     }
-    .logo {
+.logo {
   width: 42px;
   height: 42px;
   border-radius: 10px;
@@ -89,6 +92,8 @@
   box-shadow: 0 14px 36px rgba(212,175,55,0.45);
   transition: all 0.25s ease;
 }
+
+
     .title {
       font-weight: 700; letter-spacing: 0.3px;
       background: linear-gradient(90deg, #fff, var(--muted));
@@ -277,6 +282,7 @@
         <div class="logo">
            <img src="LLLogo.jpeg" alt="Logo" />
         </div>
+
         <div>
           <div class="title">Let's Learn Portal</div>
           <div class="subtitle">Virtual classes, Grades 4–12, secure student access</div>
@@ -290,6 +296,7 @@
         <button class="tab-btn" data-tab="signup">Sign up</button>
         <button class="tab-btn" data-tab="login">Login</button>
         <button class="tab-btn" data-tab="booking">Parent booking</button>
+		<button class="tab-btn" data-tab="assessments" style="display:none;">Assessments</button>
       </nav>
 	  
 	  <!-- Assessment Submission (only visible when logged in) -->
@@ -513,6 +520,14 @@
   </footer>
 
   <script>
+  
+  
+    //ids validator
+
+// Pretend we store approved IDs in localStorage or a database
+const approvedStudentIDs = new Set(["GR7-2026-4821", "GR10-2026-1234"]);
+
+  
     // ---------- Data: Grades & Subjects ----------
     const subjectsByGrade = {
       4: ["Mathematics", "English", "Home Language", "Natural Sciences", "Social Sciences"],
@@ -573,7 +588,9 @@
       online: document.getElementById("online"),
       signup: document.getElementById("signup"),
       login: document.getElementById("login"),
-      booking: document.getElementById("booking")
+      booking: document.getElementById("booking"),
+	  assessments: document.getElementById("assessments")
+
     };
 
     tabButtons.forEach(btn => {
@@ -635,6 +652,28 @@
       const email = document.getElementById("suEmail").value.trim().toLowerCase();
       const pw = document.getElementById("suPassword").value;
       const confirm = document.getElementById("suConfirm").value;
+
+
+      if (!validateStudentId(id)) { alert("Invalid Student ID. Please ask your parent to register you first."); return;
+      
+//ids validator
+
+// Pretend we store approved IDs in localStorage or a database
+const approvedStudentIDs = new Set(["GR7-2026-4821", "GR10-2026-1234"]);
+
+function validateStudentId(id) {
+  return approvedStudentIDs.has(id);
+}
+
+// Usage in sign-up form
+const studentId = document.getElementById("suStudentId").value.trim();
+if (!validateStudentId(studentId)) {
+  alert("Invalid Student ID. Please check with admin.");
+} else {
+  // proceed with sign-up
+}
+
+
 
       // Validate ID eligibility
       if (!approvedStudentIDs.has(id)) {
@@ -701,6 +740,26 @@
       if (!student) {
         showStatus(loginStatus, "No account found for this ID and email.", false);
         return;
+		
+	 if (!validateStudentId(id)) { alert("This Student ID is not recognized."); return; } // If valid → check email + password	
+		
+//ids validator
+
+// Pretend we store approved IDs in localStorage or a database
+const approvedStudentIDs = new Set(["GR7-2026-4821", "GR10-2026-1234"]);
+
+function validateStudentId(id) {
+  return approvedStudentIDs.has(id);
+}
+
+// Usage in sign-up form
+const studentId = document.getElementById("suStudentId").value.trim();
+if (!validateStudentId(studentId)) {
+  alert("Invalid Student ID. Please check with admin.");
+} else {
+  // proceed with sign-up
+}
+		
       }
       if (student.passwordHash !== hashPw(pw)) {
         showStatus(loginStatus, "Incorrect password.", false);
@@ -710,6 +769,11 @@
       store.saveSession({ studentId: student.studentId, name: student.name, grade: student.grade, email: student.email });
       showStatus(loginStatus, `Logged in as ${student.name} (Grade ${student.grade}).`, true);
       updateOnlineClassUI();
+	  
+	  // Reveal Assessments tab after login
+      document.querySelector('[data-tab="assessments"]').style.display = "inline-block";
+
+	  
     });
 
     // ---------- Parent booking (no sign-in) ----------
@@ -850,12 +914,37 @@
     el.textContent = msg;
     el.className = ok ? "status ok" : "status err";
   }
+  
+  //ids generator
+  
+  function generateStudentId(grade) {
+  const year = new Date().getFullYear();
+  const rand = Math.floor(1000 + Math.random() * 9000); // 4-digit random
+  return `GR${grade}-${year}-${rand}`;
+}
+
+// Example usage:
+console.log(generateStudentId(7)); // GR7-2026-4821
+
+//ids validator
+
+// Pretend we store approved IDs in localStorage or a database
+
+function validateStudentId(id) {
+  return approvedStudentIDs.has(id);
+}
+
+// Usage in sign-up form
+const studentId = document.getElementById("suStudentId").value.trim();
+if (!validateStudentId(studentId)) {
+  alert("Invalid Student ID. Please check with admin.");
+} else {
+  // proceed with sign-up
+}
+
+  
 </script>
 
   
 </body>
 </html>
-
-
-
-
