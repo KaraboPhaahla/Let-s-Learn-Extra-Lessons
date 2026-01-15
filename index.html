@@ -428,6 +428,7 @@
         <button class="tab-btn" data-tab="online">Online class</button>
         <button class="tab-btn" data-tab="signup">Sign up</button>
         <button class="tab-btn" data-tab="login">Login</button>
+		<button id="adminTabBtn" class="tab-btn" data-tab="admin">Admin</button>
         <button class="tab-btn" data-tab="booking">Parent booking</button>
 		<button class="tab-btn" data-tab="assessments" id="assessmentTab">Assessments</button>
 		<button id="logoutBtn" class="tab-btn" style="display:none;">Logout</button>
@@ -469,35 +470,60 @@
     <!-- Online Class -->
     <section id="online" class="card">
       <h2>Online class</h2>
-      <p class="lead">Join the virtual classroom. Students must be logged in to access session links.</p>
+      <p class="lead">Join the virtual classroom. Users must be logged in to access session links.</p>
 
       <div class="class-box">
         <div class="status" id="classStatus">Not logged in. Please log in to join a class.</div>
 
         <div class="iframe-wrap" id="classEmbed" style="display:none;">
           <!-- Replace src with your meeting provider URL (e.g., Jitsi/Zoom web client) -->
-          <iframe id="classFrame" src="about:blank" title="Virtual Class"></iframe>
+          <iframe 
+		  id="classFrame" src="https://meet.jit.si/LetsLearnMathClass" title="Virtual Class"
+		   allow="camera; microphone; fullscreen; display-capture"
+		   allow = 
+		  ></iframe>
         </div>
 		
 		
 		<!-- Admin / Teacher class controls -->
          <div id="adminClassControls" style="display:none;">
-         <label for="classRoomName">Class room name (no spaces)</label>
-         <input
-            id="classRoomName"
-             type="text"
-           placeholder="LetsLearn-Grade10-Maths"
-         />
+         <label>Grade</label>
+<select id="adminGrade">
+  <option value="4">Grade 4</option>
+  <option value="5">Grade 5</option>
+  <option value="6">Grade 6</option>
+  <option value="7">Grade 7</option>
+  <option value="8">Grade 8</option>
+  <option value="9">Grade 9</option>
+  <option value="10">Grade 10</option>
+  <option value="11">Grade 11</option>
+  <option value="12">Grade 12</option>
+</select>
+
+<label>Subject</label>
+<input id="adminSubject" type="text" placeholder="Mathematics" />
+
+<label>Class room name</label>
+<input id="classRoomName" type="text" placeholder="LetsLearn-G10-Maths" />
+
         <button class="btn secondary" id="postClassBtn">
          Post class link
         </button>
+		
+		<!-- Admin Dashboard -->
+<div id="adminDashboard" style="display:none; margin-top:20px;">
+  <h3>📋 Live Classes Dashboard</h3>
+  <div id="adminClassList" class="grid"></div>
+</div>
+
+		
 </div>
 
 		
 
         <div>
-          <button class="btn" id="joinClassBtn">Join current class</button>
-          <button class="btn secondary" id="leaveClassBtn">Leave</button>
+          <button class="btn" id="joinClassBtn">Join a class</button>
+          <button class="btn secondary" id="leaveClassBtn">Leave class</button>
         </div>
 
         <p class="note">Tip: You can host directly via embeddable providers (e.g., Jitsi meet) or link to your live session page.</p>
@@ -582,6 +608,28 @@
       </form>
 	  
     </section>
+	
+	<!-- Admin Login -->
+<section id="admin" class="card">
+  <h2>Admin Login</h2>
+  <p class="lead">Admins and teachers log in here.</p>
+
+  <form id="adminLoginForm">
+    <div class="row">
+      <div>
+        <label for="adminEmail">Email</label>
+        <input id="adminEmail" type="email" placeholder="admin@letslearn.co.za" required />
+      </div>
+      <div>
+        <label for="adminPassword">Password</label>
+        <input id="adminPassword" type="password" placeholder="Admin password" required />
+      </div>
+    </div>
+
+    <button class="btn" type="submit">Login as Admin</button>
+    <div id="adminLoginStatus" class="status" style="display:none;"></div>
+  </form>
+</section>
 
     <!-- Parent booking (no sign-in) -->
     <section id="booking" class="card">
@@ -692,13 +740,6 @@
   const assessmentStatus = document.getElementById("assessmentStatus");
   
   
-  const ADMIN_EMAILS = [
-  "admin@letslearn.co.za",
-  "teacher@letslearn.co.za"
-];
-
-  
-
   assessmentForm.addEventListener("submit", function (e) {
   e.preventDefault();
 
@@ -730,10 +771,6 @@
 });
 
 
-  function showStatus(el, msg, ok = true) {
-    el.style.display = "block";
-    el.textContent = msg;
-    el.className = ok ? "status ok" : "status err";
   }
 </script>
   
@@ -794,14 +831,16 @@
     // ---------- Tabs ----------
     const tabButtons = Array.from(document.querySelectorAll(".tab-btn"));
     const sections = {
-      home: document.getElementById("home"),
-      grades: document.getElementById("grades"),
-      online: document.getElementById("online"),
-      signup: document.getElementById("signup"),
-      login: document.getElementById("login"),
-      booking: document.getElementById("booking"),
-	  assessments: document.getElementById("assessments")
-    };
+  home: document.getElementById("home"),
+  grades: document.getElementById("grades"),
+  online: document.getElementById("online"),
+  signup: document.getElementById("signup"),
+  login: document.getElementById("login"),
+  admin: document.getElementById("admin"), // ✅ ADD THIS
+  booking: document.getElementById("booking"),
+  assessments: document.getElementById("assessments")
+};
+
 
     tabButtons.forEach(btn => {
       btn.addEventListener("click", () => {
@@ -809,7 +848,10 @@
         btn.classList.add("active");
         Object.values(sections).forEach(sec => sec.classList.remove("active"));
         sections[btn.dataset.tab].classList.add("active");
-        if (btn.dataset.tab === "online") updateOnlineClassUI();
+        if (btn.dataset.tab === "online") {
+    updateOnlineClassUI();
+    updateAdminControls(); // ✅ ADD THIS
+  }
       });
     });
 
@@ -934,18 +976,59 @@
         return;
       }
 
-      const isAdmin = ADMIN_EMAILS.includes(student.email);
    
       store.saveSession({
   studentId: student.studentId,
   name: student.name,
   grade: student.grade,
   email: student.email,
-  role: isAdmin ? "admin" : "student"
+  role: "student"
 });
       showStatus(loginStatus, `Logged in as ${student.name} (Grade ${student.grade}).`, true);
       updateOnlineClassUI();
     });
+	
+	// ---------- Admin login (no sign-in) ----------
+	
+	const adminLoginForm = document.getElementById("adminLoginForm");
+const adminLoginStatus = document.getElementById("adminLoginStatus");
+
+// Simple admin credentials (demo)
+const ADMIN_CREDENTIALS = {
+  email: "admin@letslearn.co.za",
+  passwordHash: hashPw("Admin@123")
+};
+
+adminLoginForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+
+  const email = document.getElementById("adminEmail").value.trim().toLowerCase();
+  const pw = document.getElementById("adminPassword").value;
+
+  if (
+    email !== ADMIN_CREDENTIALS.email ||
+    hashPw(pw) !== ADMIN_CREDENTIALS.passwordHash
+  ) {
+    showStatus(adminLoginStatus, "Invalid admin credentials.", false);
+    return;
+  }
+
+  store.saveSession({
+  name: "System Admin",
+  email,
+  role: "admin",
+  grade: "admin"
+});
+
+
+  showStatus(adminLoginStatus, "Admin logged in successfully.", true);
+  updateAdminControls();
+  updateOnlineClassUI();
+  updateAuthUI();
+  
+  // Switch to Online tab so admin UI becomes visible
+document.querySelector('[data-tab="online"]').click();
+});
 
     // ---------- Parent booking (no sign-in) ----------
     const bookingForm = document.getElementById("bookingForm");
@@ -1042,29 +1125,51 @@ const hasClass = localStorage.getItem(gradeKey);
 
 classStatus.textContent = hasClass
   ? `Grade ${session.grade} class is live. Click Join to enter.`
-  : `No live class for Grade ${session.grade} right now.`;
+  : `Logged in as ${session.name} (Grade ${session.grade}). You can join the classes.`;
 
-classStatus.className = hasClass ? "status ok" : "status err";
+classStatus.className = hasClass ? "status ok" : "status ok";
 	  
     }
 
     joinClassBtn.addEventListener("click", () => {
-      const session = store.getSession();
-      if (!session) {
-        alert("Please log in to join the class.");
-        return;
-      }
-      // For demo: load a placeholder “class” page.
-      // Replace this with your actual meeting URL (e.g., a Jitsi room).
-      const meetingUrl = "about:blank";
-      classFrame.src = meetingUrl;
-      classEmbed.style.display = "block";
-    });
+  const session = store.getSession();
 
-    leaveClassBtn.addEventListener("click", () => {
-      classFrame.src = "about:blank";
-      classEmbed.style.display = "none";
-    });
+  if (!session) {
+    alert("Please log in first.");
+    return;
+  }
+
+  let grade;
+  let subject;
+
+  if (session.role === "admin") {
+    // Admin chooses which class to join
+    grade = prompt("Enter grade to join (4–12)");
+    subject = prompt("Enter subject (e.g., Mathematics)");
+
+    if (!grade || !subject) return;
+  } else {
+    // Student joins their own grade only
+    grade = session.grade;
+    subject = prompt("Enter subject (e.g., Mathematics)");
+
+    if (!subject) return;
+  }
+
+  const key = `class_${grade}_${subject.toLowerCase()}`;
+  const link = localStorage.getItem(key);
+
+  if (!link) {
+    alert("No live class found for this grade and subject.");
+    return;
+  }
+
+  classFrame.src = link;
+  classEmbed.style.display = "block";
+});
+
+
+
 
     // ---------- Utility ----------
     function showStatus(el, msg, ok = true) {
@@ -1072,6 +1177,54 @@ classStatus.className = hasClass ? "status ok" : "status err";
       el.textContent = msg;
       el.className = ok ? "status ok" : "status err";
     }
+	
+	function renderAdminDashboard() {
+  const list = document.getElementById("adminClassList");
+  list.innerHTML = "";
+
+  Object.keys(localStorage)
+    .filter(k => k.startsWith("class_"))
+    .forEach(key => {
+      const link = localStorage.getItem(key);
+      const [, grade, subject] = key.split("_");
+
+      const card = document.createElement("div");
+      card.className = "panel";
+
+      card.innerHTML = `
+        <h3>Grade ${grade}</h3>
+        <p class="note">Subject: ${subject}</p>
+
+        <button class="btn" onclick="adminJoinClass('${link}')">
+          Join Class
+        </button>
+
+        <button class="btn secondary" onclick="adminEndClass('${key}')">
+          End Class
+        </button>
+      `;
+
+      list.appendChild(card);
+    });
+
+  if (!list.children.length) {
+    list.innerHTML = "<p class='note'>No active classes.</p>";
+  }
+}
+
+function adminJoinClass(link) {
+  classFrame.src = link;
+  classEmbed.style.display = "block";
+}
+
+function adminEndClass(key) {
+  if (!confirm("End this class for all students?")) return;
+
+  localStorage.removeItem(key);
+  renderAdminDashboard();
+  alert("Class ended.");
+}
+
 
     // ---------- Init ----------
     populateGrades();
@@ -1090,66 +1243,53 @@ classStatus.className = hasClass ? "status ok" : "status err";
 function updateAdminControls() {
   const session = store.getSession();
   const adminBox = document.getElementById("adminClassControls");
-
+  const dashboard = document.getElementById("adminDashboard");
+  
   if (session && session.role === "admin") {
     adminBox.style.display = "block";
+    dashboard.style.display = "block";
+    renderAdminDashboard();
   } else {
     adminBox.style.display = "none";
+    dashboard.style.display = "none";
   }
 }
-
-
-const session = store.getSession();
-if (!session || session.role !== "admin") {
-  alert("Only admins can post class links.");
-  return;
-}
-
 
 
   // Admin posts class
  postClassBtn.addEventListener("click", () => {
   const session = store.getSession();
-  if (!session) return;
-
-  const grade = session.grade;
-  const room = classRoomInput.value.trim();
-
-  if (!room) {
-    alert("Enter a room name");
+  if (!session || session.role !== "admin") {
+    alert("Admins only.");
     return;
   }
 
+  const grade = document.getElementById("adminGrade").value;
+  const subject = document.getElementById("adminSubject").value.trim().toLowerCase();
+  const room = classRoomInput.value.trim();
+
+  if (!grade || !subject || !room) {
+    alert("Fill in all fields.");
+    return;
+  }
+
+  const key = `class_${grade}_${subject}`;
   const jitsiUrl = `https://meet.jit.si/${encodeURIComponent(room)}`;
-  const key = CLASS_LINK_PREFIX + grade;
 
   localStorage.setItem(key, jitsiUrl);
 
-  alert(`Class posted for Grade ${grade}`);
+  alert(`Class posted for Grade ${grade} – ${subject}`);
   classRoomInput.value = "";
+  
+  classFrame.src = jitsiUrl;
+  classEmbed.style.display = "block";
+
 });
+
 
 
   // Student joins class
-  joinClassBtn.addEventListener("click", () => {
-  const session = store.getSession();
-  if (!session) {
-    alert("Please log in to join the class.");
-    return;
-  }
-
-  const grade = session.grade;
-  const key = CLASS_LINK_PREFIX + grade;
-  const classLink = localStorage.getItem(key);
-
-  if (!classLink) {
-    alert(`No class is currently live for Grade ${grade}.`);
-    return;
-  }
-
-  classFrame.src = classLink;
-  classEmbed.style.display = "block";
-});
+  
 
 
   // Cleanup
@@ -1169,7 +1309,21 @@ if (!session || session.role !== "admin") {
 
   function updateAuthUI() {
     const session = store.getSession();
+    const adminTabBtn = document.getElementById("adminTabBtn");
+	
+	 if (!session) {
+    // Logged out
+    adminTabBtn.style.display = "inline-block";
+  } else if (session.role === "admin") {
+    // Admin logged in
+    adminTabBtn.style.display = "inline-block";
+  } else {
+    // Student logged in
+    adminTabBtn.style.display = "none";
+  }
 
+  // keep the rest of your existing logic below
+	
     // Logout button visibility
     logoutBtn.style.display = session ? "inline-flex" : "none";
 
@@ -1217,6 +1371,22 @@ if (!session || session.role !== "admin") {
 
   // Init on page load
   updateAuthUI();
+</script>
+
+<script>
+
+window.addEventListener("DOMContentLoaded", () => {
+  updateAuthUI();
+  updateAdminControls();
+  updateOnlineClassUI();
+});
+
+configOverwrite: {
+  startWithAudioMuted: false,
+  startWithVideoMuted: false
+}
+
+
 </script>
   
 </body>
