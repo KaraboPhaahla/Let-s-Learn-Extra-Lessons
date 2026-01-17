@@ -730,6 +730,28 @@
   </footer>
   
    <script src="https://cdn.emailjs.com/dist/email.min.js"></script>
+   
+   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
+   
+   
+   <script>
+   
+     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, setDoc, doc, getDocs, collection, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "...",
+  authDomain: "...",
+  projectId: "...",
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+   
+   
+   </script>
+   
 <script>
   // Initialize EmailJS with your user ID
   (function(){
@@ -1157,7 +1179,21 @@ classStatus.className = hasClass ? "status ok" : "status ok";
   }
 
   const key = `class_${grade}_${subject.toLowerCase()}`;
-  const link = localStorage.getItem(key);
+  
+  async function joinStudentClass(grade, subject) {
+  const classId = `grade_${grade}_${subject.toLowerCase()}`;
+  const ref = doc(db, "classes", classId);
+  const snap = await getDoc(ref);
+
+  if (!snap.exists() || !snap.data().active) {
+    alert("No live class.");
+    return;
+  }
+
+  classFrame.src = snap.data().link;
+  classEmbed.style.display = "block";
+}
+
 
   if (!link) {
     alert("No live class found for this grade and subject.");
@@ -1257,34 +1293,36 @@ function updateAdminControls() {
 
 
   // Admin posts class
- postClassBtn.addEventListener("click", () => {
+ postClassBtn.addEventListener("click", async () => {
   const session = store.getSession();
   if (!session || session.role !== "admin") {
     alert("Admins only.");
     return;
   }
 
-  const grade = document.getElementById("adminGrade").value;
-  const subject = document.getElementById("adminSubject").value.trim().toLowerCase();
+  const grade = adminGrade.value;
+  const subject = adminSubject.value.trim().toLowerCase();
   const room = classRoomInput.value.trim();
 
   if (!grade || !subject || !room) {
-    alert("Fill in all fields.");
+    alert("Fill all fields.");
     return;
   }
 
-  const key = `class_${grade}_${subject}`;
+  const classId = `grade_${grade}_${subject}`;
   const jitsiUrl = `https://meet.jit.si/${encodeURIComponent(room)}`;
 
-  localStorage.setItem(key, jitsiUrl);
+  await setDoc(doc(db, "classes", classId), {
+    grade,
+    subject,
+    link: jitsiUrl,
+    active: true,
+    createdAt: Date.now()
+  });
 
-  alert(`Class posted for Grade ${grade} – ${subject}`);
-  classRoomInput.value = "";
-  
-  classFrame.src = jitsiUrl;
-  classEmbed.style.display = "block";
-
+  alert("Class posted successfully.");
 });
+
 
 
 
@@ -1381,21 +1419,44 @@ window.addEventListener("DOMContentLoaded", () => {
   updateOnlineClassUI();
 });
 
+
 configOverwrite: {
   startWithAudioMuted: false,
   startWithVideoMuted: false
 }
 
+</script>
+
+<script>
+
+async function renderAdminDashboard() {
+  const list = document.getElementById("adminClassList");
+  list.innerHTML = "";
+
+  const snapshot = await getDocs(collection(db, "classes"));
+
+  snapshot.forEach(docSnap => {
+    const data = docSnap.data();
+
+    const card = document.createElement("div");
+    card.className = "panel";
+    card.innerHTML = `
+      <h3>Grade ${data.grade}</h3>
+      <p>Subject: ${data.subject}</p>
+      <button class="btn" onclick="adminJoin('${data.link}')">Join</button>
+      <button class="btn secondary" onclick="endClass('${docSnap.id}')">End</button>
+    `;
+    list.appendChild(card);
+  });
+}
+
+async function endClass(id) {
+  await deleteDoc(doc(db, "classes", id));
+  renderAdminDashboard();
+}
 
 </script>
+
   
 </body>
 </html>
-
-
-
-
-
-
-
-
