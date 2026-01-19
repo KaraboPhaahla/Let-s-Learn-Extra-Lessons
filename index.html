@@ -730,28 +730,6 @@
   </footer>
   
    <script src="https://cdn.emailjs.com/dist/email.min.js"></script>
-   
-   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
-   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
-   
-   
-   <script>
-   
-     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, setDoc, doc, getDocs, collection, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-const firebaseConfig = {
-  apiKey: "...",
-  authDomain: "...",
-  projectId: "...",
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-   
-   
-   </script>
-   
 <script>
   // Initialize EmailJS with your user ID
   (function(){
@@ -1155,54 +1133,34 @@ classStatus.className = hasClass ? "status ok" : "status ok";
 
     joinClassBtn.addEventListener("click", () => {
   const session = store.getSession();
-
   if (!session) {
     alert("Please log in first.");
     return;
   }
 
-  let grade;
-  let subject;
+  const subject = prompt("Enter subject (e.g., Mathematics)");
+  if (!subject) return;
 
-  if (session.role === "admin") {
-    // Admin chooses which class to join
-    grade = prompt("Enter grade to join (4–12)");
-    subject = prompt("Enter subject (e.g., Mathematics)");
+  const { db, collection, query, where, onSnapshot } = window.dbAPI;
 
-    if (!grade || !subject) return;
-  } else {
-    // Student joins their own grade only
-    grade = session.grade;
-    subject = prompt("Enter subject (e.g., Mathematics)");
+  const q = query(
+    collection(db, "live_classes"),
+    where("grade", "==", session.grade),
+    where("subject", "==", subject.toLowerCase())
+  );
 
-    if (!subject) return;
-  }
+  onSnapshot(q, snap => {
+    if (snap.empty) {
+      alert("No live class found.");
+      return;
+    }
 
-  const key = `class_${grade}_${subject.toLowerCase()}`;
-  
-  async function joinStudentClass(grade, subject) {
-  const classId = `grade_${grade}_${subject.toLowerCase()}`;
-  const ref = doc(db, "classes", classId);
-  const snap = await getDoc(ref);
-
-  if (!snap.exists() || !snap.data().active) {
-    alert("No live class.");
-    return;
-  }
-
-  classFrame.src = snap.data().link;
-  classEmbed.style.display = "block";
-}
-
-
-  if (!link) {
-    alert("No live class found for this grade and subject.");
-    return;
-  }
-
-  classFrame.src = link;
-  classEmbed.style.display = "block";
+    const data = snap.docs[0].data();
+    classFrame.src = data.url;
+    classEmbed.style.display = "block";
+  });
 });
+
 
 
 
@@ -1218,35 +1176,40 @@ classStatus.className = hasClass ? "status ok" : "status ok";
   const list = document.getElementById("adminClassList");
   list.innerHTML = "";
 
-  Object.keys(localStorage)
-    .filter(k => k.startsWith("class_"))
-    .forEach(key => {
-      const link = localStorage.getItem(key);
-      const [, grade, subject] = key.split("_");
+  const { db, collection, onSnapshot, deleteDoc, doc } = window.dbAPI;
+
+  onSnapshot(collection(db, "live_classes"), snap => {
+    list.innerHTML = "";
+
+    if (snap.empty) {
+      list.innerHTML = "<p class='note'>No active classes.</p>";
+      return;
+    }
+
+    snap.forEach(d => {
+      const c = d.data();
 
       const card = document.createElement("div");
       card.className = "panel";
 
       card.innerHTML = `
-        <h3>Grade ${grade}</h3>
-        <p class="note">Subject: ${subject}</p>
-
-        <button class="btn" onclick="adminJoinClass('${link}')">
-          Join Class
-        </button>
-
-        <button class="btn secondary" onclick="adminEndClass('${key}')">
-          End Class
-        </button>
+        <h3>Grade ${c.grade}</h3>
+        <p class="note">${c.subject}</p>
+        <button class="btn" onclick="adminJoinClass('${c.url}')">Join</button>
+        <button class="btn secondary" onclick="endFirestoreClass('${d.id}')">End</button>
       `;
 
       list.appendChild(card);
     });
-
-  if (!list.children.length) {
-    list.innerHTML = "<p class='note'>No active classes.</p>";
-  }
+  });
 }
+
+async function endFirestoreClass(id) {
+  const { db, deleteDoc, doc } = window.dbAPI;
+  await deleteDoc(doc(db, "live_classes", id));
+  alert("Class ended for all devices.");
+}
+
 
 function adminJoinClass(link) {
   classFrame.src = link;
@@ -1305,22 +1268,23 @@ function updateAdminControls() {
   const room = classRoomInput.value.trim();
 
   if (!grade || !subject || !room) {
-    alert("Fill all fields.");
+    alert("Fill in all fields.");
     return;
   }
 
-  const classId = `grade_${grade}_${subject}`;
   const jitsiUrl = `https://meet.jit.si/${encodeURIComponent(room)}`;
 
-  await setDoc(doc(db, "classes", classId), {
+  const { db, collection, addDoc } = window.dbAPI;
+
+  await addDoc(collection(db, "live_classes"), {
     grade,
     subject,
-    link: jitsiUrl,
-    active: true,
+    url: jitsiUrl,
     createdAt: Date.now()
   });
 
-  alert("Class posted successfully.");
+  alert(`Class posted for Grade ${grade} – ${subject}`);
+  classRoomInput.value = "";
 });
 
 
@@ -1425,38 +1389,37 @@ configOverwrite: {
   startWithVideoMuted: false
 }
 
+
 </script>
 
-<script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+  import {
+    getFirestore,
+    collection,
+    addDoc,
+    deleteDoc,
+    doc,
+    onSnapshot,
+    query,
+    where
+  } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-async function renderAdminDashboard() {
-  const list = document.getElementById("adminClassList");
-  list.innerHTML = "";
+  const firebaseConfig = {
+    apiKey: "let-s-learn-portal",
+    authDomain: "let-s-learn-portal.firebaseapp.com",
+    projectId: "1:762890447641:web:a42c8d6207a0ba24f7f388"
+  };
 
-  const snapshot = await getDocs(collection(db, "classes"));
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
 
-  snapshot.forEach(docSnap => {
-    const data = docSnap.data();
-
-    const card = document.createElement("div");
-    card.className = "panel";
-    card.innerHTML = `
-      <h3>Grade ${data.grade}</h3>
-      <p>Subject: ${data.subject}</p>
-      <button class="btn" onclick="adminJoin('${data.link}')">Join</button>
-      <button class="btn secondary" onclick="endClass('${docSnap.id}')">End</button>
-    `;
-    list.appendChild(card);
-  });
-}
-
-async function endClass(id) {
-  await deleteDoc(doc(db, "classes", id));
-  renderAdminDashboard();
-}
-
+  window.dbAPI = {
+    db, collection, addDoc, deleteDoc, doc, onSnapshot, query, where
+  };
 </script>
 
   
 </body>
 </html>
+
