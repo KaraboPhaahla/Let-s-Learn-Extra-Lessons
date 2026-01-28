@@ -770,12 +770,76 @@
     });
 });
 
-
-  }
 </script>
+  
+  
+  <script>
+  
+  // ---------- Student SignUP ----------
+       async function studentSignup(email, password, grade, name) {
+  const { auth, createUserWithEmailAndPassword } = window.authAPI;
+
+  const cred = await createUserWithEmailAndPassword(auth, email, password);
+
+  await window.dbAPI.addDoc(
+    window.dbAPI.collection(window.dbAPI.db, "students"),
+    {
+      uid: cred.user.uid,
+      email,
+      grade,
+      name
+    }
+  );
+}
+  
+  
+// ---------- Student Login ----------  
+
+async function studentLogin(email, password) {
+  const { auth, signInWithEmailAndPassword } = window.authAPI;
+  await signInWithEmailAndPassword(auth, email, password);
+}
+
+
+window.authAPI.onAuthStateChanged(window.authAPI.auth, async user => {
+  if (!user) {
+    updateAuthUI(null);
+    return;
+  }
+
+  const q = window.dbAPI.query(
+    window.dbAPI.collection(window.dbAPI.db, "students"),
+    window.dbAPI.where("uid", "==", user.uid)
+  );
+
+  const snap = await window.dbAPI.getDocs(q);
+
+  if (!snap.empty) {
+    const student = snap.docs[0].data();
+    store.setSession({
+      role: "student",
+      name: student.name,
+      grade: student.grade
+    });
+    updateAuthUI(store.getSession());
+  }
+});
+
+async function logoutUser() {
+  await window.authAPI.signOut(window.authAPI.auth);
+  store.clearSession();
+  location.reload();
+}
+
+  
+  </script>
   
 
   <script>
+  
+  let adminDashboardListener = null;
+
+  
     // ---------- Data: Grades & Subjects ----------
     const subjectsByGrade = {
       4: ["Mathematics", "English", "Home Language", "Natural Sciences", "Social Sciences"],
@@ -1109,27 +1173,21 @@ document.querySelector('[data-tab="online"]').click();
     const leaveClassBtn = document.getElementById("leaveClassBtn");
 
     function updateOnlineClassUI() {
-	
-      const session = store.getSession();
-      if (!session) {
-        classStatus.textContent = "Not logged in. Please log in to join a class.";
-        classStatus.className = "status err";
-        classEmbed.style.display = "none";
-        return;
-      }
-      classStatus.textContent = `Logged in as ${session.name} (Grade ${session.grade}). You can join the class.`;
-      classStatus.className = "status ok";
-	  
-	  const gradeKey = CLASS_LINK_PREFIX + session.grade;
-const hasClass = localStorage.getItem(gradeKey);
+  const session = store.getSession();
 
-classStatus.textContent = hasClass
-  ? `Grade ${session.grade} class is live. Click Join to enter.`
-  : `Logged in as ${session.name} (Grade ${session.grade}). You can join the classes.`;
+  if (!session) {
+    classStatus.textContent = "Not logged in. Please log in to join a class.";
+    classStatus.className = "status err";
+    classEmbed.style.display = "none";
+    return;
+  }
 
-classStatus.className = hasClass ? "status ok" : "status ok";
-	  
-    }
+  classStatus.textContent =
+    `Logged in as ${session.name} (Grade ${session.grade}). Click Join to enter a live class.`;
+
+  classStatus.className = "status ok";
+}
+
 
     joinClassBtn.addEventListener("click", () => {
   const session = store.getSession();
@@ -1176,33 +1234,42 @@ classStatus.className = hasClass ? "status ok" : "status ok";
   const list = document.getElementById("adminClassList");
   list.innerHTML = "";
 
-  const { db, collection, onSnapshot, deleteDoc, doc } = window.dbAPI;
+  const { db, collection, onSnapshot } = window.dbAPI;
 
-  onSnapshot(collection(db, "live_classes"), snap => {
-    list.innerHTML = "";
+  // 🔥 Prevent duplicate listeners
+  if (adminDashboardListener) {
+    adminDashboardListener();
+    adminDashboardListener = null;
+  }
 
-    if (snap.empty) {
-      list.innerHTML = "<p class='note'>No active classes.</p>";
-      return;
+  adminDashboardListener = onSnapshot(
+    collection(db, "live_classes"),
+    snap => {
+      list.innerHTML = "";
+
+      if (snap.empty) {
+        list.innerHTML = "<p class='note'>No active classes.</p>";
+        return;
+      }
+
+      snap.forEach(d => {
+        const c = d.data();
+
+        const card = document.createElement("div");
+        card.className = "panel";
+        card.innerHTML = `
+          <h3>Grade ${c.grade}</h3>
+          <p class="note">${c.subject}</p>
+          <button class="btn" onclick="adminJoinClass('${c.url}')">Join</button>
+          <button class="btn secondary" onclick="endFirestoreClass('${d.id}')">End</button>
+        `;
+
+        list.appendChild(card);
+      });
     }
-
-    snap.forEach(d => {
-      const c = d.data();
-
-      const card = document.createElement("div");
-      card.className = "panel";
-
-      card.innerHTML = `
-        <h3>Grade ${c.grade}</h3>
-        <p class="note">${c.subject}</p>
-        <button class="btn" onclick="adminJoinClass('${c.url}')">Join</button>
-        <button class="btn secondary" onclick="endFirestoreClass('${d.id}')">End</button>
-      `;
-
-      list.appendChild(card);
-    });
-  });
+  );
 }
+
 
 async function endFirestoreClass(id) {
   const { db, deleteDoc, doc } = window.dbAPI;
@@ -1233,11 +1300,7 @@ function adminEndClass(key) {
   
   
   <script>
-  const postClassBtn = document.getElementById("postClassBtn");
-  const classRoomInput = document.getElementById("classRoomName");
-
-  const CLASS_LINK_PREFIX = "active_jitsi_class_grade_";
-
+ 
   // Show admin controls (simple demo rule)
 function updateAdminControls() {
   const session = store.getSession();
@@ -1255,41 +1318,6 @@ function updateAdminControls() {
 }
 
 
-  // Admin posts class
- postClassBtn.addEventListener("click", async () => {
-  const session = store.getSession();
-  if (!session || session.role !== "admin") {
-    alert("Admins only.");
-    return;
-  }
-
-  const grade = adminGrade.value;
-  const subject = adminSubject.value.trim().toLowerCase();
-  const room = classRoomInput.value.trim();
-
-  if (!grade || !subject || !room) {
-    alert("Fill in all fields.");
-    return;
-  }
-
-  const jitsiUrl = `https://meet.jit.si/${encodeURIComponent(room)}`;
-
-  const { db, collection, addDoc } = window.dbAPI;
-
-  await addDoc(collection(db, "live_classes"), {
-    grade,
-    subject,
-    url: jitsiUrl,
-    createdAt: Date.now()
-  });
-
-  alert(`Class posted for Grade ${grade} – ${subject}`);
-  classRoomInput.value = "";
-});
-
-
-
-
   // Student joins class
   
 
@@ -1303,7 +1331,58 @@ function updateAdminControls() {
   updateAdminControls();
 </script>
 
-  
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+  import {
+    getFirestore,
+    collection,
+    addDoc,
+    deleteDoc,
+    doc,
+    onSnapshot,
+    query,
+    where
+  } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBQEb16ttlBkXCFjpFEBWugh4D2ZkCCrog",
+    authDomain: "let-s-learn-portal.firebaseapp.com",
+    projectId: "let-s-learn-portal"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // Expose API
+window.dbAPI = {
+  db, collection, addDoc, deleteDoc, doc, onSnapshot, query, where
+};
+
+// 🔥 Signal that Firebase is ready
+window.firebaseReady = true;
+
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  onAuthStateChanged,
+  signOut
+} from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+
+const auth = getAuth(app);
+
+
+window.authAPI = {
+  auth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  onAuthStateChanged,
+  signOut
+};
+
+  // ✅ POST CLASS BUTTON — SAFE NOW
+
+</script>  
   
   <script>
   const logoutBtn = document.getElementById("logoutBtn");
@@ -1384,42 +1463,67 @@ window.addEventListener("DOMContentLoaded", () => {
 });
 
 
-configOverwrite: {
-  startWithAudioMuted: false,
-  startWithVideoMuted: false
-}
-
-
 </script>
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-  import {
-    getFirestore,
-    collection,
-    addDoc,
-    deleteDoc,
-    doc,
-    onSnapshot,
-    query,
-    where
-  } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const postClassBtn = document.getElementById("postClassBtn");
 
-  const firebaseConfig = {
-    apiKey: "let-s-learn-portal",
-    authDomain: "let-s-learn-portal.firebaseapp.com",
-    projectId: "1:762890447641:web:a42c8d6207a0ba24f7f388"
-  };
+  if (!postClassBtn) {
+    console.error("Post Class button not found");
+    return;
+  }
 
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
+  postClassBtn.addEventListener("click", async () => {
+    if (!window.firebaseReady || !window.dbAPI) {
+      alert("Firebase not ready yet. Please try again.");
+      return;
+    }
 
-  window.dbAPI = {
-    db, collection, addDoc, deleteDoc, doc, onSnapshot, query, where
-  };
+    const session = store.getSession();
+    if (!session || session.role !== "admin") {
+      alert("Admins only.");
+      return;
+    }
+
+    const grade = Number(document.getElementById("adminGrade").value);
+
+    const subject = document
+      .getElementById("adminSubject")
+      .value.trim()
+      .toLowerCase();
+    const room = document.getElementById("classRoomName").value.trim();
+
+    if (!grade || !subject || !room) {
+      alert("Fill in all fields.");
+      return;
+    }
+
+    const jitsiUrl = `https://meet.jit.si/${encodeURIComponent(room)}`;
+
+    try {
+      await window.dbAPI.addDoc(
+        window.dbAPI.collection(window.dbAPI.db, "live_classes"),
+        {
+          grade,
+          subject,
+          url: jitsiUrl,
+          createdAt: Date.now()
+        }
+      );
+
+      alert(`Class posted for Grade ${grade} – ${subject}`);
+      document.getElementById("classRoomName").value = "";
+    } catch (err) {
+      console.error(err);
+      alert("Failed to post class.");
+    }
+  });
+});
 </script>
 
-  
+ 
 </body>
 </html>
+
 
