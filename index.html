@@ -912,10 +912,12 @@ async function logoutUser() {
         btn.classList.add("active");
         Object.values(sections).forEach(sec => sec.classList.remove("active"));
         sections[btn.dataset.tab].classList.add("active");
-        if (btn.dataset.tab === "online") {
-    updateOnlineClassUI();
-    updateAdminControls(); // ✅ ADD THIS
-  }
+        
+if (btn.dataset.tab === "online") {
+  updateOnlineClassUI();
+  updateAdminControls();
+  listenForStudentClasses(); // ✅ THIS IS THE KEY
+}
       });
     });
 
@@ -1189,39 +1191,44 @@ document.querySelector('[data-tab="online"]').click();
 }
 
 
-    joinClassBtn.addEventListener("click", () => {
-  const session = store.getSession();
-  if (!session) {
-    alert("Please log in first.");
-    return;
-  }
+let studentClassListener = null;
 
-  const subject = prompt("Enter subject (e.g., Mathematics)");
-  if (!subject) return;
+function listenForStudentClasses() {
+  const session = store.getSession();
+  if (!session || session.role !== "student") return;
 
   const { db, collection, query, where, onSnapshot } = window.dbAPI;
 
+  // 🔥 Clear old listener
+  if (studentClassListener) {
+    studentClassListener();
+    studentClassListener = null;
+  }
+
   const q = query(
     collection(db, "live_classes"),
-    where("grade", "==", session.grade),
-    where("subject", "==", subject.toLowerCase())
+    where("grade", "==", session.grade)
   );
 
-  onSnapshot(q, snap => {
+  studentClassListener = onSnapshot(q, snap => {
     if (snap.empty) {
-      alert("No live class found.");
+      classStatus.textContent = "No live class available for your grade.";
+      classStatus.className = "status err";
+      classEmbed.style.display = "none";
       return;
     }
 
     const data = snap.docs[0].data();
-    classFrame.src = data.url;
-    classEmbed.style.display = "block";
+
+    classStatus.textContent = "Live class available. Click Join to enter.";
+    classStatus.className = "status ok";
+
+    joinClassBtn.onclick = () => {
+      classFrame.src = data.url;
+      classEmbed.style.display = "block";
+    };
   });
-});
-
-
-
-
+}
 
     // ---------- Utility ----------
     function showStatus(el, msg, ok = true) {
