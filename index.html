@@ -479,8 +479,7 @@
           <!-- Replace src with your meeting provider URL (e.g., Jitsi/Zoom web client) -->
           <iframe 
 		  id="classFrame" src="https://meet.jit.si/LetsLearnMathClass" title="Virtual Class"
-		   allow="camera; microphone; fullscreen; display-capture"
-		   allow = 
+		   allow="camera; microphone; fullscreen; display-capture; autoplay"
 		  ></iframe>
         </div>
 		
@@ -1224,9 +1223,14 @@ function listenForStudentClasses() {
     classStatus.className = "status ok";
 
     joinClassBtn.onclick = () => {
-      classFrame.src = data.url;
-      classEmbed.style.display = "block";
-    };
+  classStatus.textContent =
+    "Waiting for teacher to start the class...";
+  classStatus.className = "status err";
+
+  classFrame.src = data.url;
+  classEmbed.style.display = "block";
+};
+
   });
 }
 
@@ -1267,7 +1271,9 @@ function listenForStudentClasses() {
         card.innerHTML = `
           <h3>Grade ${c.grade}</h3>
           <p class="note">${c.subject}</p>
-          <button class="btn" onclick="adminJoinClass('${c.url}')">Join</button>
+          <button class="btn" onclick="window.open('${c.url}', '_blank')">
+  Start Class (Host)
+</button>
           <button class="btn secondary" onclick="endFirestoreClass('${d.id}')">End</button>
         `;
 
@@ -1285,9 +1291,16 @@ async function endFirestoreClass(id) {
 }
 
 
+
 function adminJoinClass(link) {
-  classFrame.src = link;
+  // 🔐 Admin must open meeting FIRST
   classEmbed.style.display = "block";
+
+  // Force full moderator context
+  classFrame.src = `${link}#userInfo.displayName="Teacher"&config.prejoinPageEnabled=false`;
+
+  classStatus.textContent = "You are hosting the class. Students can now join.";
+  classStatus.className = "status ok";
 }
 
 function adminEndClass(key) {
@@ -1532,6 +1545,7 @@ document.addEventListener("DOMContentLoaded", () => {
  
 </body>
 </html>
+
 
 
 
